@@ -8,6 +8,10 @@
         "guzzlehttp/guzzle": "^7.3",
         "ext-json": "*"
     },
+    "require-dev": {
+        "ext-json": "*",
+        "guzzlehttp/guzzle": "^7.3"
+    },
     "authors": [
         {
             "name": "Alessio De Houwer",
