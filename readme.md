@@ -7,7 +7,7 @@ Will translate all files inside a laravel project using the DeepL API and export
 Installation can be done through composer
 
 ``
-composer install alessiodh/deepltranslator
+composer require alessiodh/deepltranslator
 ``
 
 Publishing the config file
