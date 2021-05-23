@@ -2,6 +2,7 @@
     "name": "alessiodh/deepltranslator",
     "description": "Will translate all files inside a laravel project using the DeepL API and exports it to the requested language",
     "minimum-stability": "dev",
+    "license": "proprietary",
     "require": {
         "guzzlehttp/guzzle": "^7.3",
         "ext-json": "*"
