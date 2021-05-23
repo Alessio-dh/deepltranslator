@@ -1,0 +1,18 @@
+{
+    "name": "alessiodh/deepltranslator",
+    "description": "Will translate all files inside a laravel project using the DeepL API and exports it to the requested language",
+    "require": {
+        "guzzlehttp/guzzle": "^7.3",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "ext-json": "*",
+        "guzzlehttp/guzzle": "^7.3"
+    },
+    "authors": [
+        {
+            "name": "Alessio De Houwer",
+            "email": "alessio.dh@hotmail.com"
+        }
+    ]
+}
