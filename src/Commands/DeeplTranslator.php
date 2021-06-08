@@ -150,7 +150,9 @@ class DeeplTranslator extends Command
                         'ignore_tags' => 'ignore,ignore-filename,ignore-index',
                         'source_lang' => strtoupper($this->argument('from')),
                         'target_lang' => strtoupper($this->argument('to')),
-                        'auth_key' => config('deepltranslator.deepl_api_key')
+                        'auth_key' => config('deepltranslator.deepl_api_key'),
+                        'formality' => config('deepltranslator.formality'),
+                        'preserve_formatting' => config('deepltranslator.preserve_formatting'),
                     ];
 
                     $texts = $this->addIgnoreToTextForDeepL($chunkedTranslations,$file['filename']);
