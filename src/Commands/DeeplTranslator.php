@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Commands;
+namespace Alessiodh\Deepltranslator\Commands;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
