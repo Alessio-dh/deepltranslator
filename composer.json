@@ -12,6 +12,18 @@
         "ext-json": "*",
         "guzzlehttp/guzzle": "^7.3"
     },
+    "autoload": {
+        "psr-4": {
+            "Alessiodh\\Deepltranslator\\": "src"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Alessiodh\\Deepltranslator\\DeeplTranslatorServiceProvider"
+            ]
+        }
+    },
     "authors": [
         {
             "name": "Alessio De Houwer",
