@@ -11,7 +11,7 @@ return [
      * The formality parameter. One of: "default", "more", or "less"
      * @see https://www.deepl.com/docs-api/translating-text/
      */
-    'formality' => 'less',
+    'formality' => 'default',
     /**
      * Sets whether the translation engine should respect the original formatting,
      * even if it would usually correct some aspects. Possible values are:
