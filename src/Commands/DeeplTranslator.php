@@ -1,6 +1,6 @@
 <?php
 
-namespace Alessiodh\Deepltranslator\Commands;
+namespace App\Commands;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
@@ -81,11 +81,13 @@ class DeeplTranslator extends Command
             return true;
         }
 
+
         // Already translated some files , overwrite question
         if (file_exists($toPath)) {
-            $confirmed = $this->confirm('We see that the language you are wanting to translate already exists, do you wish to override and continue? [y/N]');
+            $confirmed = $this->confirm('We see that the language you are wanting to translate already exists, do you wish to translate the remaining untranslated strings? [y/N]');
+
             if(!$confirmed){
-                $this->line('Ok , we stopped the command');
+                $this->line('Ok, we stopped the command');
                 return true;
             }
         }
@@ -103,21 +105,40 @@ class DeeplTranslator extends Command
         }
 
         $translations = [];
+        $this->currentlyTranslated = [];
+
         foreach ($filesInDirectory as $translationFile) {
+            if (file_exists($toPath.'/'.$translationFile)) {
+                $this->currentlyTranslated[$translationFile] = include $toPath.'/'.$translationFile;
+            }
             $translations[$translationFile] = include $fromPath.'/'.$translationFile;
         }
 
         $allFiles = [];
         foreach ($translations as $filename => $translation){
             $transformed = $this->transformTranslation($translation);
+            $notTranslatedAllready = [];
+
+            foreach($transformed as $key => $string) {
+                if ($this->currentlyTranslated[$filename][$key] ?? null) continue;
+                $notTranslatedAllready[$key] = $string;
+            }
+
+            if (count($notTranslatedAllready) === 0) continue;
+
             $allFiles[] = [
-                'translations' => $transformed,
+                'translations' => $notTranslatedAllready,
                 'filename' => $filename
             ];
         }
 
         $allFiles = collect($allFiles);
         $client = new Client();
+
+        if ($allFiles->count() === 0) {
+            $this->error('Nothing to translate');
+            return;
+        }
 
         $requests = function() use ($allFiles,$client,$baseUrl){
             foreach ($allFiles as $key => $file) {
@@ -237,8 +258,10 @@ class DeeplTranslator extends Command
             }
         }
 
-        foreach ($resultArray as $filename => $item) {
-            file_put_contents(resource_path('lang/'.$this->argument('to').'/'.$filename),'<?php return '. var_export($item,true).';');
+        foreach ($resultArray as $filename => $newTranslations) {
+            $newTranslations = array_merge($newTranslations, $this->currentlyTranslated[$filename] ?? []);
+
+            file_put_contents(resource_path('lang/'.$this->argument('to').'/'.$filename),'<?php return '. var_export($newTranslations,true).';');
         }
     }
 
@@ -271,7 +294,7 @@ class DeeplTranslator extends Command
                 foreach (array_reverse($index2) as $valueAsKey) $a = [$valueAsKey => $a];
                 $resultArray = array_merge($resultArray,$a);
             }else{
-                $resultArray[$index] = $newText;
+                $resultArray[$index] = trim($newText);
             }
         }
 
