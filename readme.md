@@ -18,7 +18,7 @@ php artisan vendor:publish --provider="Alessiodh\Deepltranslator\DeeplTranslator
 
 ## Usage
 
-Command:
+### Command
 
 ``
 php artisan deepl:translate {from} {to} {--filename}
@@ -31,6 +31,10 @@ php artisan deepl:translate {from} {to} {--filename}
 | filename  | In case you want to translate a single file this option can be set  |  No  |
 
 The from language files will be retrieved inside `/lang/{from}/`
+
+### Trait
+
+The trait can be used to translate a single string to multiple languages on-the-fly
 
 ## Examples
 
@@ -46,6 +50,30 @@ This command will translate all php files inside the ``/lang/en`` directory. If 
 
 This will do exactly the same as translating all files but instead will only take 1 file inconsideration.
 
+### Trait usage
+
+```php
+namespace App\Http\Controllers;
+
+use Alessiodh\Deepltranslator\Traits\DeepltranslatorTrait;
+
+class MyTestController extends Controller
+{
+    use DeepltranslatorTrait;
+
+    public function home(){
+        $translated = $this->translateString('This is a test', 'en', ['fr','nl','ru']);
+
+        /*
+            $translated = [
+              "fr" => "Il s'agit d'un test",
+              "nl" => "Dit is een test",
+              "ru" => "Это тест"
+            ];
+        */
+    }
+}
+```
 
 ## Upcoming changes
 Currently not all options that Laravel supports are supported inside this package. Following options will be added soon:

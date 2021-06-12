@@ -53,7 +53,11 @@ class DeeplTranslator extends Command
 
     public function handle()
     {
-        $baseUrl = 'https://api-free.deepl.com/v2/translate';
+        if(!config('deepltranslator.deepl_url')){
+            $this->error('URL to DeepL is not set');
+        }
+
+        $baseUrl = config('deepltranslator.deepl_url');
 
         if(!config('deepltranslator.deepl_api_key')){
             $this->error('API key is not set');
