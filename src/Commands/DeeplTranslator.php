@@ -42,7 +42,7 @@ class DeeplTranslator extends Command
         "ZH",
     ];
 
-    protected $signature = 'deepl:translate {from} {to} {--filename=}';
+    protected $signature = 'deepl:translate {from} {to} {--filename=} {--json}';
 
     protected $description = 'Will translate all language files from a language to other language of choice using deepl API';
 
@@ -115,7 +115,17 @@ class DeeplTranslator extends Command
             if (file_exists($toPath.'/'.$translationFile)) {
                 $this->currentlyTranslated[$translationFile] = include $toPath.'/'.$translationFile;
             }
-            $translations[$translationFile] = include $fromPath.'/'.$translationFile;
+
+            if($this->option('json')){
+                try{
+                    $translations[$translationFile] = json_decode(file_get_contents($fromPath.'/'.$translationFile),true);
+                }catch(\Exception $exception){
+                    $this->error('Failed to get JSON content and decode it');
+                    return;
+                }
+            }else{
+                $translations[$translationFile] = include $fromPath.'/'.$translationFile;
+            }
         }
 
         $allFiles = [];
@@ -267,7 +277,13 @@ class DeeplTranslator extends Command
         foreach ($resultArray as $filename => $newTranslations) {
             $newTranslations = array_merge($newTranslations, $this->currentlyTranslated[$filename] ?? []);
 
-            file_put_contents(resource_path('lang/'.$this->argument('to').'/'.$filename),'<?php return '. var_export($newTranslations,true).';');
+            if($this->option('json')){
+                $fileContents = json_encode($newTranslations,JSON_THROW_ON_ERROR);
+            }else{
+                $fileContents = '<?php return '. var_export($newTranslations,true).';';
+            }
+
+            file_put_contents(resource_path('lang/'.$this->argument('to').'/'.$filename),$fileContents);
         }
     }
 
