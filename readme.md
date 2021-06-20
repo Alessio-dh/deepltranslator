@@ -21,7 +21,7 @@ php artisan vendor:publish --provider="Alessiodh\Deepltranslator\DeeplTranslator
 ### Command
 
 ``
-php artisan deepl:translate {from} {to} {--filename}
+php artisan deepl:translate {from} {to} {--filename} {--json}
 ``
 
 | Option   | Description  |  Required  |
@@ -29,6 +29,7 @@ php artisan deepl:translate {from} {to} {--filename}
 | from | The from language where the translations will be taken from  |  Yes  |
 | to  |  The language you want to translate to |  Yes  |
 | filename  | In case you want to translate a single file this option can be set  |  No  |
+| json  | In case this flag is set , it will search for json translation files instead of PHP  |  No  |
 
 The from language files will be retrieved inside `/lang/{from}/`
 
