@@ -78,7 +78,7 @@ class MyTestController extends Controller
 ## Upcoming changes
 Currently not all options that Laravel supports are supported inside this package. Following options will be added soon:
 
-- [] Pluralization inside translation file
-- [] Numeric if statements inside the translation
-- [] Database translations
+- [ ] Pluralization inside translation file
+- [ ] Numeric if statements inside the translation
+- [ ] Database translations
 - [x] JSON files as translation files instead of PHP
