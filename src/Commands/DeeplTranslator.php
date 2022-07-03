@@ -64,8 +64,9 @@ class DeeplTranslator extends Command
             return true;
         }
 
-        $fromPath = resource_path('lang/' . $this->argument('from'));
-        $toPath = resource_path('lang/' . $this->argument('to'));
+        $lang_path = App::langPath().'/';
+        $fromPath = $lang_path.$this->argument('from');
+        $toPath = $lang_path.$this->argument('to');
 
         // From language path does not exist
         if (!file_exists($fromPath)) {
