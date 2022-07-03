@@ -7,7 +7,6 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Pool;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
 
 class DeeplTranslator extends Command
@@ -54,20 +53,19 @@ class DeeplTranslator extends Command
 
     public function handle()
     {
-        if(!config('deepltranslator.deepl_url')){
+        if (!config('deepltranslator.deepl_url')) {
             $this->error('URL to DeepL is not set');
         }
 
         $baseUrl = config('deepltranslator.deepl_url');
 
-        if(!config('deepltranslator.deepl_api_key')){
+        if (!config('deepltranslator.deepl_api_key')) {
             $this->error('API key is not set');
             return true;
         }
 
-        $lang_path = App::langPath().'/';
-        $fromPath = $lang_path.$this->argument('from');
-        $toPath = $lang_path.$this->argument('to');
+        $fromPath = lang_path($this->argument('from'));
+        $toPath = lang_path($this->argument('to'));
 
         // From language path does not exist
         if (!file_exists($fromPath)) {
@@ -76,13 +74,13 @@ class DeeplTranslator extends Command
         }
 
         //Not the same language
-        if($this->argument('from') == $this->argument('to')){
+        if ($this->argument('from') == $this->argument('to')) {
             $this->error('You can not enter the from and to languages as the same language');
             return true;
         }
 
         // Deepl api cant handle this language
-        if(!in_array(strtoupper($this->argument('to')),$this->possibleTranslationLanguages)){
+        if (!in_array(strtoupper($this->argument('to')), $this->possibleTranslationLanguages)) {
             $this->error('Language is not allowed');
             return true;
         }
@@ -92,21 +90,21 @@ class DeeplTranslator extends Command
         if (file_exists($toPath)) {
             $confirmed = $this->confirm('We see that the language you are wanting to translate already exists, do you wish to translate the remaining untranslated strings? [y/N]');
 
-            if(!$confirmed){
+            if (!$confirmed) {
                 $this->line('Ok, we stopped the command');
                 return true;
             }
         }
 
         // Specific file requested to translate
-        if($this->option('filename')){
-            if(!file_exists($fromPath.'/'.$this->option('filename'))){
+        if ($this->option('filename')) {
+            if (!file_exists($fromPath . '/' . $this->option('filename'))) {
                 $this->error('File does not exist');
                 return;
-            }else{
+            } else {
                 $filesInDirectory = [$this->option('filename')];
             }
-        }else{
+        } else {
             $filesInDirectory = array_diff(scandir($fromPath), array('..', '.'));
         }
 
@@ -114,28 +112,28 @@ class DeeplTranslator extends Command
         $this->currentlyTranslated = [];
 
         foreach ($filesInDirectory as $translationFile) {
-            if (file_exists($toPath.'/'.$translationFile)) {
-                $this->currentlyTranslated[$translationFile] = include $toPath.'/'.$translationFile;
+            if (file_exists($toPath . '/' . $translationFile)) {
+                $this->currentlyTranslated[$translationFile] = include $toPath . '/' . $translationFile;
             }
 
-            if($this->option('json')){
-                try{
-                    $translations[$translationFile] = json_decode(file_get_contents($fromPath.'/'.$translationFile),true);
-                }catch(\Exception $exception){
+            if ($this->option('json')) {
+                try {
+                    $translations[$translationFile] = json_decode(file_get_contents($fromPath . '/' . $translationFile), true);
+                } catch (\Exception $exception) {
                     $this->error('Failed to get JSON content and decode it');
                     return;
                 }
-            }else{
-                $translations[$translationFile] = include $fromPath.'/'.$translationFile;
+            } else {
+                $translations[$translationFile] = include $fromPath . '/' . $translationFile;
             }
         }
 
         $allFiles = [];
-        foreach ($translations as $filename => $translation){
+        foreach ($translations as $filename => $translation) {
             $transformed = $this->transformTranslation($translation);
             $notTranslatedAllready = [];
 
-            foreach($transformed as $key => $string) {
+            foreach ($transformed as $key => $string) {
                 if ($this->currentlyTranslated[$filename][$key] ?? null) continue;
                 $notTranslatedAllready[$key] = $string;
             }
@@ -144,7 +142,7 @@ class DeeplTranslator extends Command
 
             $allFiles[] = [
                 'translations' => $notTranslatedAllready,
-                'filename' => $filename
+                'filename'     => $filename
             ];
         }
 
@@ -156,32 +154,32 @@ class DeeplTranslator extends Command
             return;
         }
 
-        $requests = function() use ($allFiles,$client,$baseUrl){
+        $requests = function () use ($allFiles, $client, $baseUrl) {
             foreach ($allFiles as $key => $file) {
                 $allTranslations = collect($file['translations']);
                 $allTranslations = $allTranslations->chunk(30);
                 foreach ($allTranslations as $chunkedTranslations) {
                     $params = [
-                        'tag_handling' => 'xml',
-                        'ignore_tags' => 'ignore,ignore-filename,ignore-index',
-                        'source_lang' => strtoupper($this->argument('from')),
-                        'target_lang' => strtoupper($this->argument('to')),
-                        'auth_key' => config('deepltranslator.deepl_api_key'),
-                        'formality' => config('deepltranslator.formality'),
+                        'tag_handling'        => 'xml',
+                        'ignore_tags'         => 'ignore,ignore-filename,ignore-index',
+                        'source_lang'         => strtoupper($this->argument('from')),
+                        'target_lang'         => strtoupper($this->argument('to')),
+                        'auth_key'            => config('deepltranslator.deepl_api_key'),
+                        'formality'           => config('deepltranslator.formality'),
                         'preserve_formatting' => config('deepltranslator.preserve_formatting'),
                     ];
 
-                    $texts = $this->addIgnoreToTextForDeepL($chunkedTranslations,$file['filename']);
+                    $texts = $this->addIgnoreToTextForDeepL($chunkedTranslations, $file['filename']);
 
                     $text = '';
                     foreach ($texts as $item) {
                         $text .= $item;
                     }
 
-                    $body = http_build_query($params).'&'.substr_replace($text ,"", -1);
-                    yield function() use ($client,$body,$baseUrl) {
-                        return $client->postAsync($baseUrl,[
-                            'body' => $body,
+                    $body = http_build_query($params) . '&' . substr_replace($text, "", -1);
+                    yield function () use ($client, $body, $baseUrl) {
+                        return $client->postAsync($baseUrl, [
+                            'body'    => $body,
                             'headers' => [
                                 'Content-Type' => 'application/x-www-form-urlencoded',
                             ]
@@ -191,13 +189,13 @@ class DeeplTranslator extends Command
             }
         };
 
-        $pool = new Pool($client,$requests(),[
+        $pool = new Pool($client, $requests(), [
             'concurrency' => 5,
-            'fulfilled' => function (Response $response, $index) {
+            'fulfilled'   => function (Response $response, $index) {
                 $test = $response->getBody()->getContents();
                 $this->handleResponse($test);
             },
-            'rejected' => function (RequestException $reason, $index) {
+            'rejected'    => function (RequestException $reason, $index) {
                 Log::debug($reason);
                 $this->error('Something went wrong when receiving answer from DeepL API');
             },
@@ -207,24 +205,25 @@ class DeeplTranslator extends Command
         $promise->wait();
     }
 
-    private function addIgnoreToTextForDeepL($translations,$filename ,$texts = [], $indexes = []){
+    private function addIgnoreToTextForDeepL($translations, $filename, $texts = [], $indexes = [])
+    {
         foreach ($translations as $index => $chunkedTranslation) {
-            if(is_array($chunkedTranslation)){
+            if (is_array($chunkedTranslation)) {
                 $indexes[] = $index;
-                $result = collect($this->addIgnoreToTextForDeepL($chunkedTranslation,$filename,[], $indexes))->flatten()->toArray();
+                $result = collect($this->addIgnoreToTextForDeepL($chunkedTranslation, $filename, [], $indexes))->flatten()->toArray();
                 foreach ($result as $item) {
                     $texts[] = $item;
                 }
-            }else{
-                if(count($indexes) > 0){
-                    $t = 'text=<ignore-filename>'.$filename.'</ignore-filename>';
+            } else {
+                if (count($indexes) > 0) {
+                    $t = 'text=<ignore-filename>' . $filename . '</ignore-filename>';
                     foreach ($indexes as $indexesToAdd) {
-                        $t .= '<ignore-index>'.$indexesToAdd.'</ignore-index>';
+                        $t .= '<ignore-index>' . $indexesToAdd . '</ignore-index>';
                     }
-                    $t .= $chunkedTranslation.'&';
+                    $t .= $chunkedTranslation . '&';
                     $texts[] = $t;
-                }else{
-                    $texts[] = 'text=<ignore-filename>'.$filename.'</ignore-filename><ignore-index>'.$index.'</ignore-index>'. $chunkedTranslation.'&';
+                } else {
+                    $texts[] = 'text=<ignore-filename>' . $filename . '</ignore-filename><ignore-index>' . $index . '</ignore-index>' . $chunkedTranslation . '&';
                 }
             }
         }
@@ -232,46 +231,49 @@ class DeeplTranslator extends Command
         return $texts;
     }
 
-    private function transformTranslation($translations,$transformed = []){
-        foreach ($translations as $index => $toTranslate){
-            if(is_array($toTranslate)){
-                $transformed[$index] = $this->transformTranslation($toTranslate,[]);
-            }else{
+    private function transformTranslation($translations, $transformed = [])
+    {
+        foreach ($translations as $index => $toTranslate) {
+            if (is_array($toTranslate)) {
+                $transformed[$index] = $this->transformTranslation($toTranslate, []);
+            } else {
                 $transformed[$index] = $this->addIgnoreTagToVariables($toTranslate);
             }
         }
         return $transformed;
     }
 
-    private function addIgnoreTagToVariables($text){
+    private function addIgnoreTagToVariables($text)
+    {
         $newtext = $text;
         $regex = '~(:\w+)~';
         if (preg_match_all($regex, $text, $matches, PREG_PATTERN_ORDER)) {
             foreach ($matches[1] as $word) {
-                $newtext = str_replace($word,'<ignore>'. $word .'</ignore>',$newtext);
+                $newtext = str_replace($word, '<ignore>' . $word . '</ignore>', $newtext);
             }
             return $newtext;
-        }else{
+        } else {
             return $text;
         }
     }
 
-    private function handleResponse($result){
-        try{
+    private function handleResponse($result)
+    {
+        try {
             $decoded = json_decode($result);
-        }catch (\Exception $ex){
+        } catch (\Exception $ex) {
             Log::error('Something went wrong decoding the response from DeepL');
         }
 
-        if(!isset($decoded->translations)){
+        if (!isset($decoded->translations)) {
             $this->error('No translations have been returned by DeepL');
             return;
         }
 
         $resultArray = $this->handleTranslatedTexts($decoded->translations);
 
-        if (!is_dir(resource_path('lang/'.$this->argument('to')))) {
-            if (!mkdir($concurrentDirectory = resource_path('lang/' . $this->argument('to'))) && !is_dir($concurrentDirectory)) {
+        if (!is_dir(lang_path($this->argument('to')))) {
+            if (!mkdir($concurrentDirectory = lang_path( $this->argument('to'))) && !is_dir($concurrentDirectory)) {
                 throw new \RuntimeException(sprintf('Directory "%s" was not created', $concurrentDirectory));
             }
         }
@@ -279,22 +281,23 @@ class DeeplTranslator extends Command
         foreach ($resultArray as $filename => $newTranslations) {
             $newTranslations = array_merge($newTranslations, $this->currentlyTranslated[$filename] ?? []);
 
-            if($this->option('json')){
-                $fileContents = json_encode($newTranslations,JSON_THROW_ON_ERROR);
-            }else{
-                $fileContents = '<?php return '. var_export($newTranslations,true).';';
+            if ($this->option('json')) {
+                $fileContents = json_encode($newTranslations, JSON_THROW_ON_ERROR);
+            } else {
+                $fileContents = '<?php return ' . var_export($newTranslations, true) . ';';
             }
 
-            file_put_contents(resource_path('lang/'.$this->argument('to').'/'.$filename),$fileContents);
+            file_put_contents(lang_path($this->argument('to') . '/' . $filename), $fileContents);
         }
     }
 
-    private function handleTranslatedTexts($translations){
+    private function handleTranslatedTexts($translations)
+    {
         $resultArray = [];
         foreach ($translations as $translation) {
-            $filename = $this->everything_in_tags($translation->text,'ignore-filename')[0];
-            $index2 = $this->everything_in_tags($translation->text,'ignore-index');
-            $index = $this->everything_in_tags($translation->text,'ignore-index')[0];
+            $filename = $this->everything_in_tags($translation->text, 'ignore-filename')[0];
+            $index2 = $this->everything_in_tags($translation->text, 'ignore-index');
+            $index = $this->everything_in_tags($translation->text, 'ignore-index')[0];
 
             $toReplace = [
                 $filename,
@@ -311,13 +314,13 @@ class DeeplTranslator extends Command
                 '<ignore>',
                 '</ignore>'
             ];
-            $newText = str_replace($toReplace,'',$translation->text);
+            $newText = str_replace($toReplace, '', $translation->text);
 
             $a = $newText;
-            if(count($index2) > 1){
+            if (count($index2) > 1) {
                 foreach (array_reverse($index2) as $valueAsKey) $a = [$valueAsKey => $a];
-                $resultArray = array_merge($resultArray,$a);
-            }else{
+                $resultArray = array_merge($resultArray, $a);
+            } else {
                 $resultArray[$index] = trim($newText);
             }
         }
